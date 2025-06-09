@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat-Terdistri Pro++</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+    
+    <!-- QR Code Library -->
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Login Screen -->
+        <section id="login-screen" class="login-screen fade-in">
+            <div class="login-card">
+                <div class="login-card-inner">
+                    <div class="login-header">
+                        <div class="logo-container">
+                            <div class="logo-symbol">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                        </div>
+                        <h1>Chat-Terdistri</h1>
+                        <div class="version-badge">Pro++</div>
+                        <p class="subtitle">Distribusi pesan real-time dengan failover otomatis</p>
+                    </div>
+                    
+                    <form id="login-form" class="login-form">
+                        <div class="form-group">
+                            <label for="username">Nama Pengguna</label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-user"></i>
+                                <input type="text" id="username" placeholder="Masukkan nama Anda" required autocomplete="off">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="token">
+                                Token Privat
+                                <span class="label-hint">(opsional)</span>
+                            </label>
+                            <div class="input-wrapper">
+                                <i class="fas fa-key"></i>
+                                <input type="text" id="token" placeholder="Untuk chat privat" autocomplete="off">
+                                <button type="button" id="generate-token" class="btn-icon" aria-label="Generate token">
+                                    <i class="fas fa-dice"></i>
+                                </button>
+                            </div>
+                            <p class="input-hint">Kosongkan untuk chat publik, isi token yang sama untuk chat privat dengan pengguna tertentu</p>
+                        </div>
+                        
+                        <div class="server-info">
+                            <div class="info-row">
+                                <span class="info-label">IP Anda:</span>
+                                <span id="user-ip" class="info-value">Memuat...</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Server:</span>
+                                <span id="server-info" class="info-value">Memuat...</span>
+                            </div>
+                            <div class="connection-status">
+                                <span id="connection-indicator" class="status-indicator connecting"></span>
+                                <span id="connection-text">Menghubungkan...</span>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-login">
+                            <span>Mulai Chat</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </form>
+                    
+                    <!-- QR Code for Easy Access -->
+                    <div class="login-footer">
+                        <button id="show-qr-code" class="btn-text">
+                            <i class="fas fa-qrcode"></i> Akses dari perangkat lain
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Chat Interface -->
+        <section id="chat-interface" class="chat-interface" style="display: none;">
+            <header class="chat-header">
+                <div class="header-left">
+                    <button id="toggle-servers" class="btn-icon" aria-label="Toggle servers panel">
+                        <i class="fas fa-server"></i>
+                    </button>
+                    <div class="channel-info">
+                        <h2 id="current-channel">general</h2>
+                        <span class="channel-meta" id="channel-meta">Chat publik</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="server-status">
+                        <span id="main-connection-indicator" class="status-indicator connecting"></span>
+                        <span id="current-server-name">Memuat...</span>
+                    </div>
+                    <button id="toggle-users" class="btn-icon" aria-label="Toggle users panel">
+                        <i class="fas fa-users"></i>
+                        <span id="online-count" class="badge">0</span>
+                    </button>
+                </div>
+            </header>
+            
+            <div class="chat-content">
+                <!-- Servers Panel -->
+                <aside id="servers-panel" class="side-panel servers-panel">
+                    <div class="panel-header">
+                        <h3>Servers</h3>
+                        <button id="close-servers" class="btn-icon" aria-label="Close servers panel">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="panel-content">
+                        <div class="server-list" id="server-list">
+                            <!-- Servers will be populated here -->
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Mencari server...</p>
+                            </div>
+                        </div>
+                        <div class="panel-actions">
+                            <button id="refresh-servers" class="btn btn-secondary">
+                                <i class="fas fa-sync-alt"></i>
+                                <span>Refresh Servers</span>
+                            </button>
+                        </div>
+                    </div>
+                </aside>
+                
+                <!-- Users Panel -->
+                <aside id="users-panel" class="side-panel users-panel">
+                    <div class="panel-header">
+                        <h3>Pengguna Online</h3>
+                        <button id="close-users" class="btn-icon" aria-label="Close users panel">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="panel-content">
+                        <div class="users-list" id="users-list">
+                            <!-- Users will be populated here -->
+                            <div class="loading-placeholder">
+                                <div class="spinner"></div>
+                                <p>Memuat pengguna...</p>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+                
+                <!-- Messages Container -->
+                <main class="messages-container">
+                    <div id="messages-list" class="messages-list">
+                        <!-- Messages will be populated here -->
+                        <div class="welcome-message">
+                            <div class="welcome-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <h3>Selamat datang di Chat-Terdistri Pro++</h3>
+                            <p>Ini adalah awal dari chat. Kirim pesan untuk memulai percakapan.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- New Messages Indicator -->
+                    <div id="new-messages-indicator" class="new-messages-indicator" style="display: none;">
+                        <i class="fas fa-chevron-down"></i>
+                        <span>Pesan baru</span>
+                    </div>
+                </main>
+            </div>
+            
+            <!-- Message Input -->
+            <div class="message-input-container">
+                <form id="message-form" class="message-form">
+                    <div class="input-wrapper">
+                        <input type="text" id="message-input" placeholder="Ketik pesan Anda..." autocomplete="off">
+                        <button type="submit" class="btn btn-send" aria-label="Send message">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+        
+        <!-- Private Chat Modal -->
+        <div id="private-chat-modal" class="modal">
+            <div class="modal-content slide-up">
+                <div class="modal-header">
+                    <h3>Chat Privat</h3>
+                    <button id="close-private-modal" class="btn-icon" aria-label="Close modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Anda telah memasukkan token untuk chat privat.</p>
+                    <div class="token-display">
+                        <span id="display-token" class="token-value"></span>
+                        <button id="copy-token" class="btn-icon" aria-label="Copy token">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <p class="modal-note">Hanya pengguna dengan token yang sama yang dapat melihat dan mengirim pesan dalam chat ini.</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="continue-private-chat" class="btn btn-primary">Lanjutkan</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Server Configuration Modal -->
+        <div id="server-config-modal" class="modal">
+            <div class="modal-content slide-up">
+                <div class="modal-header">
+                    <h3>Konfigurasi Server</h3>
+                    <button id="close-server-config-modal" class="btn-icon" aria-label="Close modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="add-server-url">Server URL</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-link"></i>
+                            <input type="text" id="add-server-url" placeholder="http://192.168.1.100:5000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="add-server-id">Server ID (opsional)</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-tag"></i>
+                            <input type="text" id="add-server-id" placeholder="server-name">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="save-server-config" class="btn btn-primary">Tambahkan Server</button>
+                    <button id="cancel-server-config" class="btn btn-secondary">Batal</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- QR Code Modal -->
+        <div id="qr-code-modal" class="modal">
+            <div class="modal-content slide-up">
+                <div class="modal-header">
+                    <h3>Scan untuk Akses Mudah</h3>
+                    <button id="close-qr-modal" class="btn-icon" aria-label="Close modal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="qr-container" id="qr-container">
+                        <!-- QR Code will be displayed here -->
+                    </div>
+                    <p class="server-url" id="server-url-display">http://192.168.1.100:5000</p>
+                    <p class="modal-note">Scan kode QR di atas atau ketikkan URL di perangkat lain yang terhubung ke jaringan yang sama</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p id="loading-text">Menghubungkan ke server...</p>
+            </div>
+        </div>
+        
+        <!-- Toast Notifications Container -->
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html>
